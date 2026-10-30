@@ -1,0 +1,27 @@
+{% extends "_layouts/cp" %}
+{% set title = "Takedown Packet" %}
+{% set crumbs = [
+    { label: 'DomainGuard', url: cpUrl('domainguard') },
+] %}
+{% do view.registerAssetBundle('ingeniousai\\domainguard\\assetbundles\\DomainGuardAsset') %}
+
+{% block content %}
+    <h2>{{ packet.lookalike }}</h2>
+    <p class="light">
+        Impersonating <strong>{{ packet.domain }}</strong>
+        {% if packet.fuzzer %} · technique: {{ packet.fuzzer }}{% endif %}
+        {% if packet.has_mx %} · accepts mail (MX present){% else %} · no MX observed{% endif %}
+    </p>
+
+    <h3>What to do</h3>
+    <ol>
+        {% for step in packet.steps %}
+            <li>{{ step }}</li>
+        {% endfor %}
+    </ol>
+
+    <h3>Ready-to-send abuse report</h3>
+    <p class="light">Built only from facts the scan observed — registration, MX state,
+       technique, and your score and certificate count at observation time. Nothing invented.</p>
+    <textarea class="dg-packet-text dg-mono" readonly onclick="this.select()">{{ packet.text }}</textarea>
+{% endblock %}

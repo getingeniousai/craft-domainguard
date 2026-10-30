@@ -1,0 +1,72 @@
+{% import "_includes/forms" as forms %}
+
+{{ forms.textField({
+    label: "DomainGuard API key"|t('domainguard'),
+    instructions: "Your site's own DomainGuard key (starts with DGAPI). You can also name an environment variable, e.g. $DOMAINGUARD_API_KEY. Free keys include real scans every month."|t('domainguard'),
+    id: 'apiKey',
+    name: 'apiKey',
+    value: settings.apiKey,
+    placeholder: 'DGAPI…',
+    suggestEnvVars: true,
+    autocomplete: false,
+}) }}
+
+{{ forms.lightswitchField({
+    label: "Live score badge"|t('domainguard'),
+    instructions: "Serve the badge at /domainguard-badge.svg. It shows the score of the latest completed scan — or “not watched yet” before the first one."|t('domainguard'),
+    id: 'badgeEnabled',
+    name: 'badgeEnabled',
+    on: settings.badgeEnabled,
+}) }}
+
+<hr>
+
+<h2>{{ "Monitoring (Pro)"|t('domainguard') }}</h2>
+<p class="light">{{ "Run scans on a schedule with: php craft domainguard/monitor/run (add it to cron). Alerts are emailed when a warranted change is detected."|t('domainguard') }}</p>
+
+{{ forms.lightswitchField({
+    label: "Enable monitoring"|t('domainguard'),
+    id: 'monitorEnabled',
+    name: 'monitorEnabled',
+    on: settings.monitorEnabled,
+}) }}
+
+{{ forms.textField({
+    label: "Alert email"|t('domainguard'),
+    instructions: "Leave empty to alert the first admin user's email."|t('domainguard'),
+    id: 'alertEmail',
+    name: 'alertEmail',
+    value: settings.alertEmail,
+    type: 'email',
+    autocomplete: false,
+}) }}
+
+{{ forms.textField({
+    label: "Alert on score drop of at least (points)"|t('domainguard'),
+    id: 'alertDrop',
+    name: 'alertDrop',
+    value: settings.alertDrop,
+    type: 'number',
+    size: 4,
+}) }}
+
+{{ forms.lightswitchField({
+    label: "Alert on new lookalike domains"|t('domainguard'),
+    id: 'alertNewLookalike',
+    name: 'alertNewLookalike',
+    on: settings.alertNewLookalike,
+}) }}
+
+{{ forms.lightswitchField({
+    label: "Alert on new certificates"|t('domainguard'),
+    id: 'alertNewCert',
+    name: 'alertNewCert',
+    on: settings.alertNewCert,
+}) }}
+
+{{ forms.lightswitchField({
+    label: "Alert if CAA protection is lost"|t('domainguard'),
+    id: 'alertCaaLost',
+    name: 'alertCaaLost',
+    on: settings.alertCaaLost,
+}) }}

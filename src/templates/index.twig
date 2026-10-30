@@ -1,0 +1,193 @@
+{% extends "_layouts/cp" %}
+{% set title = "DomainGuard" %}
+{% do view.registerAssetBundle('ingeniousai\\domainguard\\assetbundles\\DomainGuardAsset') %}
+
+{% block actionButton %}
+    {% if hasKey %}
+        <form id="dg-run-scan" data-domain="{{ ownDomain }}" method="post">
+            {{ csrfInput() }}
+            <button type="submit" class="btn submit">Run scan</button>
+            <span id="dg-scan-status" class="dg-scan-status"></span>
+        </form>
+    {% endif %}
+{% endblock %}
+
+{% block content %}
+    {% if not hasKey %}
+        <div class="pane">
+            <h2>Connect your DomainGuard API key</h2>
+            <p>DomainGuard scans <strong>your own domain</strong> for registered lookalike
+               domains, certificate-transparency history, and CAA posture — and rolls it
+               into one real exposure score. The scan runs on the live DomainGuard engine;
+               this plugin is its control-panel window.</p>
+            <p>Add your API key (free keys include real scans every month) under
+               <a href="{{ url('settings/plugins/domainguard') }}">Settings → DomainGuard Domain Watch</a>,
+               then come back and run your first scan.</p>
+        </div>
+    {% endif %}
+
+    {% if lastScan and lastScan.error and not lastScan.report %}
+        <div class="pane">
+            <p><strong>Last scan did not complete</strong> ({{ lastScan.dateCreated }}).
+               No score card or badge is produced from a failed scan — run a fresh scan when ready.</p>
+        </div>
+    {% endif %}
+
+    {% if report %}
+        <div class="dg-hero">
+            <div class="dg-hero-score" style="color: {{ scoreColor }}">{{ report.score }}<small>/100</small></div>
+            <div>
+                <p class="dg-hero-band">{{ scoreBand }}</p>
+                <p class="dg-hero-meta">
+                    {{ report.domain }}
+                    {% if report.generated_at %} · scanned {{ report.generated_at|date('M j, Y') }}{% endif %}
+                    {% if usage and usage.plan %} · API plan: {{ usage.plan }}{% if usage.used is defined %} · {{ usage.used }} scan(s) used this month{% endif %}{% endif %}
+                </p>
+                <div class="dg-chips">
+                    <span class="dg-chip" style="color: {{ lookalikes|length > 0 ? '#f97316' : '#22c55e' }}">{{ lookalikes|length }} lookalike{{ lookalikes|length == 1 ? '' : 's' }} registered</span>
+                    <span class="dg-chip" style="color: #38bdf8">{{ certCount }} cert{{ certCount == 1 ? '' : 's' }} in CT logs</span>
+                    <span class="dg-chip" style="color: {{ caaProtected ? '#22c55e' : '#ef4444' }}">{{ caaProtected ? 'CAA protected' : 'CAA missing' }}</span>
+                </div>
+            </div>
+        </div>
+
+        {% if report.sweep_cut_short %}
+            <div class="pane">
+                <p><strong>Honest coverage note:</strong> the lookalike sweep was cut short by the
+                   engine — it checked {{ report.lookalikes_checked }} of {{ report.lookalikes_total }}
+                   permutations. Treat the lookalike count as a floor, not a ceiling.</p>
+            </div>
+        {% elseif report.lookalikes_checked %}
+            <p class="light">Lookalike sweep coverage: {{ report.lookalikes_checked }} of {{ report.lookalikes_total }} permutations checked.</p>
+        {% endif %}
+
+        <h2>Findings</h2>
+        {% if report.findings|length %}
+            <table class="data fullwidth collapsible">
+                <thead><tr><th>Severity</th><th>Finding</th><th>Detail</th></tr></thead>
+                <tbody>
+                {% for f in report.findings %}
+                    <tr>
+                        <td>{{ f.severity|default('')|upper }}</td>
+                        <td><strong>{{ f.title|default('') }}</strong></td>
+                        <td>{{ f.detail|default('') }}</td>
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        {% else %}
+            <p>No findings — nothing the engine flags on this domain right now.</p>
+        {% endif %}
+
+        <h2>Registered lookalike domains</h2>
+        {% if lookalikes|length %}
+            <table class="data fullwidth collapsible">
+                <thead><tr><th>Lookalike</th><th>Technique</th><th>Accepts mail (MX)</th>{% if isPro %}<th></th>{% endif %}</tr></thead>
+                <tbody>
+                {% for lk in lookalikes %}
+                    <tr>
+                        <td class="dg-mono">{{ lk.perm }}</td>
+                        <td>{{ lk.fuzzer|default('') }}</td>
+                        <td>{{ lk.mx ? 'Yes — can receive mail as your brand' : 'No' }}</td>
+                        {% if isPro %}<td><a href="{{ cpUrl('domainguard/takedown/' ~ lk.perm) }}">Takedown Packet</a></td>{% endif %}
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+            {% if not isPro %}
+                <p class="light">Pro adds a ready-to-send Takedown Packet per lookalike — a registrar
+                   abuse report built from exactly what this scan observed.</p>
+            {% endif %}
+        {% else %}
+            <p>No lookalike domains are registered against {{ report.domain }}. That is the finding worth sharing.</p>
+        {% endif %}
+
+        <h2>Certificate-transparency history</h2>
+        <p>{{ certCount }} certificate{{ certCount == 1 ? '' : 's' }} logged for this domain.
+           {% if certs|length %}Most recent entries:{% endif %}</p>
+        {% if certs|length %}
+            <table class="data fullwidth collapsible">
+                <thead><tr><th>Issuer</th><th>Names</th><th>Valid until</th></tr></thead>
+                <tbody>
+                {% for c in certs|slice(0, 10) %}
+                    <tr>
+                        <td>{{ c.issuer|default('') }}</td>
+                        <td class="dg-mono">{{ c.names is defined and c.names ? c.names|join(', ') : '' }}</td>
+                        <td>{{ c.not_after|default('') }}</td>
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        {% endif %}
+
+        <h2>CAA posture</h2>
+        {% if caa and caa.records is defined and caa.records|length %}
+            <ul>
+                {% for r in caa.records %}<li class="dg-mono">{{ r }}</li>{% endfor %}
+            </ul>
+            <p class="light">{{ caaProtected
+                ? 'An issue record restricts which certificate authorities may issue for this domain.'
+                : 'Records exist, but no issue property restricts issuance — any CA may issue.' }}</p>
+        {% else %}
+            <p><strong>No CAA records.</strong> Any certificate authority may issue certificates
+               for this domain. Adding a CAA record is the cheapest hardening step there is.</p>
+        {% endif %}
+
+        <h2>Your score card</h2>
+        <p>Rendered from this exact scan — same score, same counts. Share it; every card
+           links back to a free scan so the next owner can check their own domain.</p>
+        <img class="dg-card-preview" src="{{ cardUrl }}" alt="DomainGuard exposure score card for {{ report.domain }}">
+        <p class="dg-share-row">
+            {% for name, u in shareUrls %}<a href="{{ u }}" target="_blank" rel="noopener">Share on {{ name|capitalize }}</a>{% endfor %}
+        </p>
+        <p class="light">{{ shareText }}</p>
+
+        <h2>Live badge</h2>
+        {% if settings.badgeEnabled %}
+            <p><img src="{{ badgeUrl }}" alt="DomainGuard exposure score badge" height="28"></p>
+            <p>Put this in your site's footer — it always shows the score of your latest completed scan:</p>
+            <textarea class="dg-mono" rows="3" readonly onclick="this.select()">{{ embedSnippet }}</textarea>
+        {% else %}
+            <p class="light">The badge is switched off in the plugin settings. When enabled it is
+               served at <span class="dg-mono">{{ badgeUrl }}</span> and shows your real score.</p>
+        {% endif %}
+
+        {% if history|length > 1 %}
+            <h2>Score history</h2>
+            <table class="data fullwidth collapsible">
+                <thead><tr><th>Date</th><th>Score</th><th>Band</th><th>Lookalikes</th><th>Certs</th><th>CAA</th></tr></thead>
+                <tbody>
+                {% for h in history|reverse %}
+                    <tr>
+                        <td>{{ h.ts|date('M j, Y') }}</td>
+                        <td><strong>{{ h.score }}</strong>/100</td>
+                        <td>{{ h.band }}</td>
+                        <td>{{ h.lookalikes }}</td>
+                        <td>{{ h.certs }}</td>
+                        <td>{{ h.caa_ok ? 'Protected' : 'Missing' }}</td>
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        {% endif %}
+
+        {% if not isPro %}
+            <div class="pane">
+                <h2>DomainGuard Pro</h2>
+                <p><strong>Monitoring</strong> — scheduled re-scans (via <span class="dg-mono">php craft domainguard/monitor/run</span>)
+                   with an email the moment your score drops, a new lookalike registers, a new
+                   certificate appears, or your CAA protection disappears.</p>
+                <p><strong>Takedown Packets</strong> — one ready-to-send registrar abuse report
+                   per registered lookalike, built only from what the scan observed.</p>
+                <p class="light">Upgrade the edition in the Plugin Store — Lite keeps everything it has; Pro adds the depth.</p>
+            </div>
+        {% endif %}
+    {% elseif hasKey %}
+        <div class="pane">
+            <h2>No scan yet</h2>
+            <p>Run your first scan of <strong>{{ ownDomain }}</strong> with the button above.
+               It usually takes under a minute. Your score card and badge are minted only
+               from a completed scan — never from a guess.</p>
+        </div>
+    {% endif %}
+{% endblock %}

@@ -1,0 +1,80 @@
+/* DomainGuard Domain Watch — control-panel section styling. */
+
+.dg-hero {
+    display: flex;
+    align-items: center;
+    gap: 28px;
+    padding: 24px;
+    border-radius: 10px;
+    background: linear-gradient(135deg, #06231f, #0b352e);
+    color: #f9fafb;
+    margin-bottom: 24px;
+}
+
+.dg-hero-score {
+    font-size: 84px;
+    font-weight: 800;
+    line-height: 1;
+    white-space: nowrap;
+}
+
+.dg-hero-score small {
+    font-size: 28px;
+    color: #9ca3af;
+    font-weight: 600;
+}
+
+.dg-hero-band {
+    font-size: 22px;
+    font-weight: 700;
+    margin: 0 0 4px;
+}
+
+.dg-hero-meta {
+    color: #9ca3af;
+    margin: 0;
+}
+
+.dg-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 12px;
+}
+
+.dg-chip {
+    border: 1px solid currentColor;
+    border-radius: 999px;
+    padding: 4px 12px;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+}
+
+.dg-scan-status {
+    margin-left: 12px;
+    font-weight: 600;
+}
+
+.dg-card-preview {
+    max-width: 600px;
+    width: 100%;
+    border-radius: 8px;
+    display: block;
+}
+
+.dg-share-row a {
+    margin-right: 14px;
+    font-weight: 600;
+}
+
+.dg-mono {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 12px;
+    word-break: break-all;
+}
+
+.dg-packet-text {
+    width: 100%;
+    min-height: 380px;
+}

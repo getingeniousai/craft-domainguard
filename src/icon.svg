@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="120" height="120" viewBox="0 0 120 120" role="img" aria-label="DomainGuard">
+  <rect width="120" height="120" rx="24" fill="#0b352e"/>
+  <g fill="none" stroke="#22c55e" stroke-width="5">
+    <circle cx="60" cy="56" r="30"/>
+    <ellipse cx="60" cy="56" rx="14" ry="30"/>
+    <path d="M32 46 H88 M32 66 H88" stroke-width="4"/>
+  </g>
+  <path d="M60 96 l14 -6 v10 c0 8 -6 13 -14 16 c-8 -3 -14 -8 -14 -16 v-10 z" fill="#22c55e"/>
+</svg>
